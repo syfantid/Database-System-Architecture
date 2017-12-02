@@ -19,6 +19,14 @@ public class InStream {
         DataInputStream ds = new DataInputStream( bis );
         return ds;
     }
+ /*Open file with a specific buffer size*/
+    public DataInputStream bufferedOpen(String filename, int B) throws FileNotFoundException {
+        InputStream is = new FileInputStream( new File(filename ) );
+        /*Giving customized size of B as parameter in bytes*/
+        BufferedInputStream bis = new BufferedInputStream( is , B * DatabaseSystemArchitecture.elementSizeInBytes );
+        DataInputStream ds = new DataInputStream( bis );
+        return ds;
+    }
 
     public ObjectInputStream blockOpen(String filename) throws IOException {
         ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename));

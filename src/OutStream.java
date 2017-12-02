@@ -15,6 +15,14 @@ class OutStream {
         return new DataOutputStream( bos );
     }
 
+    DataOutputStream bufferedCreate(String filename, int B) throws FileNotFoundException {
+        OutputStream os = new FileOutputStream( new File(filename ) );
+        /*Giving customized size of B as parameter in bytes*/
+        BufferedOutputStream bos = new BufferedOutputStream( os, B * DatabaseSystemArchitecture.elementSizeInBytes );
+        return new DataOutputStream( bos );
+    }
+
+
     ObjectOutputStream blockCreate(String filename) throws IOException {
         return new ObjectOutputStream(new FileOutputStream(filename));
     }

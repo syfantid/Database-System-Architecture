@@ -42,13 +42,17 @@ public class DatabaseSystemArchitecture {
         System.out.println("METHOD 2:");
         bufferedStreams();
 
-        /* METHOD 3: BUFFER READ PER BLOCK */
-        System.out.println("METHOD 3:");
+        /* METHOD 3a: BUFFER READ PER BLOCK (objectStream) */
+        System.out.println("METHOD 3:a");
         blockStreams();
 
+        /* METHOD 3b: BUFFER READ PER BLOCK (Buffered Parameterized Stream) */
+        System.out.println("METHOD 3:b");
+        parameterizedBufferedStreams();
+
         /* METHOD 4: MAPPING */
-        System.out.println("METHOD 4:");
-        mapStreams();
+       System.out.println("METHOD 4:");
+       mapStreams();
     }
 
     private static String createFilename(String filename, int i) {
@@ -230,6 +234,62 @@ public class DatabaseSystemArchitecture {
                 }
             }
         }
+        endReadTime = System.currentTimeMillis();
+        readTime = endReadTime - startReadTime;
+        System.out.println("Read Time: " + readTime);
+        totalTime = readTime + writeTime;
+        System.out.println("Total Time: " + totalTime);
+    }
+
+    private static void parameterizedBufferedStreams() throws IOException {
+        DataOutputStream[] ods = new DataOutputStream[k];
+        DataInputStream[] ds = new DataInputStream[k];
+
+        /* Write data to files */
+        startWriteTime = System.currentTimeMillis();
+        for(int i = 0; i < k; i++) {
+            ods[i] = out[i].bufferedCreate(createFilename("testBuffered",i), B);
+        }
+        /* For each number (i), write the number to j files */
+        for(int i = 0; i < N; i++) {
+            for(int j = 0; j < k; j++) {
+                out[j].write(ods[j], rand.nextInt());
+            }
+        }
+        /* Close all files */
+        for(int i = 0; i < k; i++) {
+            out[i].close(ods[i]);
+        }
+
+        /*Open file and read data*/
+        endWriteTime = System.currentTimeMillis();
+        writeTime = endWriteTime - startWriteTime;
+        System.out.println("Write Time: " + writeTime);
+
+        /* Open files simultaneously */
+        startReadTime = System.currentTimeMillis();
+        for(int i = 0; i < k; i++) {
+            try {
+                ds[i] = in[i].bufferedOpen(createFilename("testBuffered",i), B);
+            } catch (FileNotFoundException e) {
+                System.out.println("File not found!");
+                return;
+            }
+        }
+
+        /* Read data from files */
+        for(int i = 0; i < k; i++) {
+            while (!in[i].eof(ds[i])) {
+                in[i].read(ds[i]);
+            /* Uncomment this line if you want the contents of the file to be printed on screen */
+            /*System.out.println(in[i].read(ds[i]));*/
+            }
+        }
+        /* Close all files */
+        for(int i = 0; i < k; i++) {
+            in[i].close(ds[i]);
+        }
+
         endReadTime = System.currentTimeMillis();
         readTime = endReadTime - startReadTime;
         System.out.println("Read Time: " + readTime);

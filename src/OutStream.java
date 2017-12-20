@@ -18,7 +18,7 @@ class OutStream {
     DataOutputStream bufferedCreate(String filename, int B) throws FileNotFoundException {
         OutputStream os = new FileOutputStream( new File(filename ) );
         /*Giving customized size of B as parameter in bytes*/
-        BufferedOutputStream bos = new BufferedOutputStream( os, B * DatabaseSystemArchitecture.elementSizeInBytes );
+        BufferedOutputStream bos = new BufferedOutputStream( os, B * IOBenchmarking.elementSizeInBytes );
         return new DataOutputStream( bos );
     }
 
@@ -27,11 +27,18 @@ class OutStream {
         return new ObjectOutputStream(new FileOutputStream(filename));
     }
 
+    /**
+     *
+     * @param filename
+     * @param N File size in 32-bit integers
+     * @return
+     * @throws IOException
+     */
     ChannelObjects channelCreate(String filename, int N) throws IOException {
         RandomAccessFile memoryMappedFile = new RandomAccessFile(filename, "rw");
         FileChannel fileChannel = memoryMappedFile.getChannel();
         MappedByteBuffer map = fileChannel.map(FileChannel.MapMode.READ_WRITE,
-                0,DatabaseSystemArchitecture.elementSizeInBytes * N);
+                0, IOBenchmarking.elementSizeInBytes * N);
         return new ChannelObjects(fileChannel, map, memoryMappedFile);
     }
 

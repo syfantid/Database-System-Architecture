@@ -1,11 +1,9 @@
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class InStream {
 
-    /**/
     public DataInputStream systemOpen(String filename) throws FileNotFoundException {
         InputStream is = null;
         is = new FileInputStream( new File(filename) );
@@ -23,7 +21,7 @@ public class InStream {
     public DataInputStream bufferedOpen(String filename, int B) throws FileNotFoundException {
         InputStream is = new FileInputStream( new File(filename ) );
         /*Giving customized size of B as parameter in bytes*/
-        BufferedInputStream bis = new BufferedInputStream( is , B * DatabaseSystemArchitecture.elementSizeInBytes );
+        BufferedInputStream bis = new BufferedInputStream( is , B * IOBenchmarking.elementSizeInBytes );
         DataInputStream ds = new DataInputStream( bis );
         return ds;
     }
@@ -33,11 +31,18 @@ public class InStream {
         return in;
     }
 
-    public ChannelObjects channelOpen(String filename, int M) throws IOException {
+    /**
+     *
+     * @param filename The file to be opened
+     * @param N File size in integers
+     * @return
+     * @throws IOException
+     */
+    public ChannelObjects channelOpen(String filename, int N) throws IOException {
         RandomAccessFile memoryMappedFile = new RandomAccessFile(filename, "r");
         FileChannel fileChannel = memoryMappedFile.getChannel();
         MappedByteBuffer map = fileChannel.map(FileChannel.MapMode.READ_ONLY,
-                0,DatabaseSystemArchitecture.elementSizeInBytes * M);
+                0, IOBenchmarking.elementSizeInBytes * N);
         return new ChannelObjects(fileChannel, map, memoryMappedFile);
     }
 
@@ -68,7 +73,7 @@ public class InStream {
     }
 
     public boolean eof(MappedByteBuffer mbb) {
-        return mbb.hasRemaining();
+        return !mbb.hasRemaining();
     }
 
     public void close(DataInputStream ds) throws IOException {

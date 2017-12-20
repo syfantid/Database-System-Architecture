@@ -2,9 +2,9 @@ import java.io.*;
 import java.nio.MappedByteBuffer;
 import java.util.Random;
 
-public class DatabaseSystemArchitecture {
+public class IOBenchmarking {
     /* Number of open streams */
-    private static int k = 5;
+    private static int k = 15;
     /* Input and Output Streams; need to be initialized in main function */
     static OutStream[] out = new OutStream[k];
     static InStream[] in = new InStream[k];
@@ -20,14 +20,12 @@ public class DatabaseSystemArchitecture {
     /* Variable for random integer generation */
     static Random rand = new Random();
     /* Number of records per file */
-    static int N = 50000;
+    static int N = 200000000;
     /* Size of a buffer block in records */
-    static int B = 100;
-    // TODO: 30/11/2017 Before we had declared B as the number of buffers in memory; and M as the size of each memory
-    // buffer but I think it was wrong.
-
+    static int B = 20000000;
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
+        //System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream("output.txt", true)), true));
         /* Initializing the input streams */
         for(int i=0; i<k; i++) {
             out[i] = new OutStream();
@@ -35,27 +33,27 @@ public class DatabaseSystemArchitecture {
         }
 
         /* METHOD 1: SYSTEM FUNCTIONS */
-        System.out.println("METHOD 1:");
-        systemStreams();
+        /*System.out.println("METHOD 1:");
+        systemStreams();*/
 
         /* METHOD 2: BUFFERED READER AND WRITER */
-        System.out.println("METHOD 2:");
-        bufferedStreams();
+        /*System.out.println("METHOD 2:");
+        bufferedStreams();*/
 
         /* METHOD 3a: BUFFER READ PER BLOCK (objectStream) */
         System.out.println("METHOD 3:a");
         blockStreams();
 
         /* METHOD 3b: BUFFER READ PER BLOCK (Buffered Parameterized Stream) */
-        System.out.println("METHOD 3:b");
-        parameterizedBufferedStreams();
+        /*System.out.println("METHOD 3:b");
+        parameterizedBufferedStreams();*/
 
         /* METHOD 4: MAPPING */
        System.out.println("METHOD 4:");
        mapStreams();
     }
 
-    private static String createFilename(String filename, int i) {
+    public static String createFilename(String filename, int i) {
         return filename + i + ".data";
     }
 
@@ -184,13 +182,13 @@ public class DatabaseSystemArchitecture {
         int counter = 0; //to check if N integers are already written in the file
 
         /*refill the buffer array bufferRefills times using B elements and then write it to k files*/
-        outerloop:
         for(int i = 0; i < bufferRefills; i++) {
+            innerloop:
             for(int j = 0; j < B; j++) {
                 buffer[j] = rand.nextInt();
                 counter++;
                 if(counter >= N) {
-                    break outerloop;
+                    break innerloop;
                 }
             }
             for(int j = 0; j < k; j++) {
@@ -314,13 +312,13 @@ public class DatabaseSystemArchitecture {
         int counter = 0; //to check if N integers are already written in the file
 
         /*refill the buffer array bufferRefills times using B elements and then write it to k files*/
-        outerloop:
         for(int i = 0; i < bufferRefills; i++) {
+            innerloop:
             for(int j = 0; j < B; j++) {
-                buffer[j] = rand.nextInt(10);
+                buffer[j] = rand.nextInt();
                 counter++;
                 if(counter >= N) {
-                    break outerloop;
+                    break innerloop;
                 }
             }
 
@@ -342,7 +340,7 @@ public class DatabaseSystemArchitecture {
         startReadTime = System.currentTimeMillis();
         for(int i = 0; i < k; i++) {
             try {
-                channelObjects[i] = in[i].channelOpen(createFilename("testMapping",i),B);
+                channelObjects[i] = in[i].channelOpen(createFilename("testMapping",i),N);
                 map[i] = channelObjects[i].getMap();
             } catch (FileNotFoundException e) {
                 System.out.println("File not found!");
@@ -351,7 +349,7 @@ public class DatabaseSystemArchitecture {
         }
 
         for(int i = 0; i < k; i++) {
-            while (in[i].eof(map[i])) {
+            while (!in[i].eof(map[i])) {
                 int[] buf = in[i].read(map[i], B);
                 /* Uncomment this block if you want the result to be printed on screen */
 //                for (int j = 0; j < buf.length; j++) {

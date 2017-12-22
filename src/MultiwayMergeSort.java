@@ -1,6 +1,4 @@
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -14,6 +12,10 @@ public class MultiwayMergeSort {
     private static int fileNumber; // The file number for Phase 1 files; after phase 1 it includes the number of files
     private Queue<Integer> fileNumbers = new ArrayDeque<>(); // Queue for the filenames' numbers
     HashMap<Integer,Integer> integersPerFile = new HashMap<>();  // Overall number of integers in file
+
+    private long startTime;
+    private long endTime;
+    private long totalTime;
     
     public MultiwayMergeSort(int M, int d, int N) {
         fileNumber = 0;
@@ -25,11 +27,14 @@ public class MultiwayMergeSort {
 
     public int mergeSort(String initialFilePath) throws IOException {
         /* First Phase: Splitting the file into N/M sorted files */
+        System.out.println("Starting Phase 1...");
+        startTime = System.currentTimeMillis();
         splitFiles(initialFilePath);
 
         /* Second Phase */
-        int B = (int)Math.ceil(M / (d+1)); // The memory should fit d blocks for files and 1 block for output; each block should be of size B
-        int iteration = 1;
+        System.out.println("Starting Phase 2... Be Patient! :)");
+        int B = (int)Math.ceil(M*1.0 / (d+1)); // The memory should fit d blocks for files and 1 block for output; each block should be of size B
+
         /* Memory of M integers consists of the priority queue and the output buffer*/
         /*In total the size of both structures is M integers*/
         PriorityQueue<Record> priorityQueue = new PriorityQueue<>();
@@ -38,33 +43,36 @@ public class MultiwayMergeSort {
 
         // While there are more files to be merge-sorted; each loop produces one output file
         while(fileNumbers.size() > 1) {
-            System.out.println("Iteration:" + iteration);
-
             HashMap<Integer, InStream> in = new HashMap<>();
             HashMap<Integer, ChannelObjects> channelObjects = new HashMap<>(); //reference number for all the open files
             HashMap<Integer, Integer> fileFrequencies = new HashMap<>(); //number of integers of a particular file in the queue
+            HashMap<Integer, Integer> integersReadInPhase = new HashMap<>(); //number of integers read so far from the file
 
-            /* File opening for read operation */
+            /* File opening for read operation; open d streams at one iteration */
+            d = Math.min(d,fileNumbers.size());
+            int totalOutputFileSize = 0; // How many integers we'll write in the output file
             for(int i = 0; i < d; i++) {
-                // TODO: 20/12/2017 Keep in mind that last file can be smaller and thus correction might be needed
                 int fileNumber = fileNumbers.peek();
                 fileFrequencies.put(fileNumber, 0);
+                integersReadInPhase.put(fileNumber, 0);
+
                 in.put(fileNumber,new InStream());
                 channelObjects.put(fileNumber, in.get(fileNumber).channelOpen(IOBenchmarking.createFilename("file",fileNumber),integersPerFile.get(fileNumber)));
+                //totalOutputFileSize += integersPerFile.get(fileNumber);
+                totalOutputFileSize += Files.size(Paths.get(IOBenchmarking.createFilename("file",fileNumber)));
                 fileNumbers.poll();
-
             }
-
              /* Create file to write output */
             OutStream out = new OutStream();
             ChannelObjects channelObject;
-            channelObject = out.channelCreate(IOBenchmarking.createFilename("file",fileNumber), (int)Math.pow(M,iteration+1));
-            fileNumbers.add(fileNumber);
-            integersPerFile.put(fileNumber,0);
+            // TODO: 22/12/2017 Think about multiplication factor
+            channelObject = out.channelCreate(IOBenchmarking.createFilename("file",fileNumber), totalOutputFileSize/4);
+            int outputFileNumber = fileNumber;
+            fileNumbers.add(outputFileNumber);
+            integersPerFile.put(outputFileNumber,0);
 
             // Add  first block of every file to the priority queue
             for(int file:channelObjects.keySet()){
-                // TODO: 20/12/2017 What if the end block has less than B integers?
                 int[] buffer = new int[B];
                 try {
                    buffer = in.get(file).read(channelObjects.get(file).getMap(), B);
@@ -75,7 +83,9 @@ public class MultiwayMergeSort {
                     priorityQueue.add(new Record(buffer[j], file));
                     //increment number of integers from one file in priority queue
                     fileFrequencies.put(file, fileFrequencies.get(file)+1);
-                    integersPerFile.put(file, integersPerFile.get(file)+1);
+                    //increment number of integers reaad
+                    integersReadInPhase.put(file, integersReadInPhase.get(file)+1);
+                    /*integersPerFile.put(file, integersPerFile.get(file)+1);*/
                 }
             }
 
@@ -91,66 +101,91 @@ public class MultiwayMergeSort {
                 if(B == outputBufferCount) {
                     out.write(channelObject.getMap(), outputBuffer);
                     outputBufferCount = 0;
-                    integersPerFile.put(fileNumber,integersPerFile.get(fileNumber) + B);
+                    integersPerFile.put(outputFileNumber,integersPerFile.get(outputFileNumber) + B);
                 }
                 //if the file block is finished from priority queue, bring the next block from file (if available)
                 if(fileFrequencies.get(fileNumber)== 0) {
                     if(!in.get(fileNumber).eof(channelObjects.get(fileNumber).getMap())) {
-                        System.out.println("File number: " + fileNumber);
                         int[] buffer = new int[B];
-                        buffer = in.get(fileNumber).read(channelObjects.get(fileNumber).getMap(), B);
+                        int remainingIntegers = Math.min(B,integersPerFile.get(fileNumber)-integersReadInPhase.get(fileNumber));
+                        buffer = in.get(fileNumber).read(channelObjects.get(fileNumber).getMap(), Math.min(B,remainingIntegers));
                         for(int j = 0; j < buffer.length; j++) {
                             priorityQueue.add(new Record(buffer[j], fileNumber));
                             //increment number of integers from one file in priority queue
                             fileFrequencies.put(fileNumber, fileFrequencies.get(fileNumber)+1);
+                            integersPerFile.put(fileNumber, integersReadInPhase.get(fileNumber)+1);
                         }
                     } else {
                         fileFrequencies.remove(fileNumber);
+                        integersReadInPhase.remove(fileNumber);
                         in.get(fileNumber).close(channelObjects.get(fileNumber));
                         channelObjects.remove(fileNumber);
                         in.remove(fileNumber);
-//                      Files.deleteIfExists(Paths.get(IOBenchmarking.createFilename("file",fileNumber)));
+                        try {
+                            Files.deleteIfExists(Paths.get(IOBenchmarking.createFilename("file", fileNumber)));
+                        } catch(java.nio.file.FileSystemException e) {
+
+                        }
                     }
                 }
             }
-
-            // TODO: 20/12/2017 Check the output buffer for remaining records
-
             if(outputBufferCount != 0) {
-                integersPerFile.put(fileNumber,integersPerFile.get(fileNumber) + outputBufferCount);
+                integersPerFile.put(outputFileNumber,integersPerFile.get(outputFileNumber) + outputBufferCount);
+                outputBufferCount = 0;
                 out.write(channelObject.getMap(), outputBuffer);
             }
             out.close(channelObject);
-            iteration+=1;
-            System.out.println("Integers in file " + fileNumber + ": " + integersPerFile.get(fileNumber));
+            /*long bytes = Files.size(Paths.get(IOBenchmarking.createFilename("file",outputFileNumber)));
+            System.out.println("Producing output file: " + IOBenchmarking.createFilename("file",outputFileNumber) +
+                    " of size " + humanReadableByteCount(bytes,true));*/
             fileNumber++;
         }
+
+        endTime = System.currentTimeMillis();
+        totalTime = endTime - startTime;
+        System.out.println("Merge Sort Time: " + totalTime + "ms");
+
         return fileNumber-1;
     }
 
     public void splitFiles(String initialFilePath) throws IOException {
         InStream input = new InStream();
         ChannelObjects inputChannelObject = input.channelOpen(initialFilePath,N);
+        int rowsRead = 0;
 
         ChannelObjects outputChannelObject;
         
         while(!input.eof(inputChannelObject.getMap())) { // While there are more blocks to read
             /* Read Block */
-            int[] block = input.read(inputChannelObject.getMap(),M); // Read one block at a time
+            int[] block = input.read(inputChannelObject.getMap(),Math.min(M,N-rowsRead)); // Read one block at a time
+            rowsRead+=Math.min(M,N-rowsRead);
             Arrays.sort(block); // Sort the block
             
             /* Write Block */
             String filename = IOBenchmarking.createFilename("file", fileNumber); // The file to be written
             fileNumbers.add(fileNumber);
             integersPerFile.put(fileNumber,block.length);
-            System.out.println("Rows for file " + fileNumber + ": " + block.length);
             fileNumber+=1;
             OutStream output = new OutStream();
             outputChannelObject = output.channelCreate(filename, M);
             output.write(outputChannelObject.getMap(),block); // Write block
-            // TODO: 20/12/2017 Last file rows are not equal to M
             output.close(outputChannelObject);
         }
+    }
+
+    /**
+     * Code taken from https://stackoverflow.com/questions/3758606/how-to-convert-byte-size-into-human-readable-format-in-java
+     * to convert bytes to human readable format
+     * @param bytes the bytes to be converted
+     * @param si true for SI units, false for binary units
+     * @return
+     */
+    public static String humanReadableByteCount(long bytes, boolean si) {
+        int unit = si ? 1000 : 1024;
+        if (bytes < unit) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
 }

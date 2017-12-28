@@ -33,7 +33,7 @@ public class MergesortBenchmarking {
             return;
         }
 
-        String initialFile = "intial.data";
+        String initialFile = "initial.data";
         createInitialFile(initialFile, N, B);
 
         MultiwayMergeSort merge = new MultiwayMergeSort(M,d,N);

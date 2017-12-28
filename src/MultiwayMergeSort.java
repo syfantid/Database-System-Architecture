@@ -171,6 +171,8 @@ public class MultiwayMergeSort {
             output.write(outputChannelObject.getMap(),block); // Write block
             output.close(outputChannelObject);
         }
+        //close initial file
+        input.close(inputChannelObject);
     }
 
     /**

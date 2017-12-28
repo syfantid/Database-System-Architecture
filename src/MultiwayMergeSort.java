@@ -66,7 +66,7 @@ public class MultiwayMergeSort {
             OutStream out = new OutStream();
             ChannelObjects channelObject;
             // TODO: 22/12/2017 Think about multiplication factor
-            channelObject = out.channelCreate(IOBenchmarking.createFilename("file",fileNumber), totalOutputFileSize/4);
+            channelObject = out.channelCreate(IOBenchmarking.createFilename("file",fileNumber), totalOutputFileSize/3);
             int outputFileNumber = fileNumber;
             fileNumbers.add(outputFileNumber);
             integersPerFile.put(outputFileNumber,0);
@@ -135,9 +135,9 @@ public class MultiwayMergeSort {
                 out.write(channelObject.getMap(), outputBuffer);
             }
             out.close(channelObject);
-            /*long bytes = Files.size(Paths.get(IOBenchmarking.createFilename("file",outputFileNumber)));
+            long bytes = Files.size(Paths.get(IOBenchmarking.createFilename("file",outputFileNumber)));
             System.out.println("Producing output file: " + IOBenchmarking.createFilename("file",outputFileNumber) +
-                    " of size " + humanReadableByteCount(bytes,true));*/
+                    " of total integers " + integersPerFile.get(outputFileNumber));
             fileNumber++;
         }
 
@@ -174,20 +174,4 @@ public class MultiwayMergeSort {
         //close initial file
         input.close(inputChannelObject);
     }
-
-    /**
-     * Code taken from https://stackoverflow.com/questions/3758606/how-to-convert-byte-size-into-human-readable-format-in-java
-     * to convert bytes to human readable format
-     * @param bytes the bytes to be converted
-     * @param si true for SI units, false for binary units
-     * @return
-     */
-    public static String humanReadableByteCount(long bytes, boolean si) {
-        int unit = si ? 1000 : 1024;
-        if (bytes < unit) return bytes + " B";
-        int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
-        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
-    }
-
 }

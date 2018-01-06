@@ -27,6 +27,12 @@ public class IOBenchmarking {
     /* Size of a buffer block in records */
     static int B;
 
+    /**
+     * The main benchmarking method for the I/O operations
+     * @param args The parameters to be passed for benchmarking, N, B and k
+     * @throws IOException Exceptions thrown from various methods
+     * @throws ClassNotFoundException Exceptions thrown from typecasting problems
+     */
     public static void main(String[] args) throws IOException, ClassNotFoundException {
 
         if(args.length < 3) {
@@ -74,15 +80,31 @@ public class IOBenchmarking {
        mapStreams();
     }
 
+    /**
+     * Creates a filename for each file
+     * @param filename The prefix of the filename
+     * @param i The number of the file
+     * @return The filename of the file to be written or read
+     */
     public static String createFilename(String filename, int i) {
         return filename + i + ".data";
     }
 
+    /**
+     * Deletes a file
+     * @param prefix The prefix of the file to be deleted
+     * @param number The number of the file to be deleted
+     * @throws IOException
+     */
     public static void deleteFiles(String prefix, int number) throws IOException {
         Path fileToDeletePath = Paths.get(createFilename(prefix,number));
         Files.delete(fileToDeletePath);
     }
 
+    /**
+     * Benchmarks the system calls
+     * @throws IOException
+     */
     private static void systemStreams() throws IOException {
         DataOutputStream[] ods = new DataOutputStream[k];
         DataInputStream[] ds = new DataInputStream[k];
@@ -138,6 +160,10 @@ public class IOBenchmarking {
         System.out.println("Total Time: " + totalTime);
     }
 
+    /**
+     * Benchmarks the default buffered streams
+     * @throws IOException
+     */
     private static void bufferedStreams() throws IOException {
         DataOutputStream[] ods = new DataOutputStream[k];
         DataInputStream[] ds = new DataInputStream[k];
@@ -195,6 +221,11 @@ public class IOBenchmarking {
         System.out.println("Total Time: " + totalTime);
     }
 
+    /**
+     * Benchmarks the object streams
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     private static void objectStreams() throws IOException, ClassNotFoundException {
         ObjectOutputStream[] oos = new ObjectOutputStream[k];
         ObjectInputStream[] ois = new ObjectInputStream[k];
@@ -268,6 +299,10 @@ public class IOBenchmarking {
         System.out.println("Total Time: " + totalTime);
     }
 
+    /**
+     * Benchmarks the parametrized buffered streams
+     * @throws IOException
+     */
     private static void parameterizedBufferedStreams() throws IOException {
         DataOutputStream[] ods = new DataOutputStream[k];
         DataInputStream[] ds = new DataInputStream[k];
@@ -325,6 +360,10 @@ public class IOBenchmarking {
         System.out.println("Total Time: " + totalTime);
     }
 
+    /**
+     * Benchmarks memory mapping
+     * @throws IOException
+     */
     private static void mapStreams() throws IOException {
          /*Write data to file*/
         ChannelObjects[] channelObjects = new ChannelObjects[k];

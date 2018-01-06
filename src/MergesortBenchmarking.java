@@ -13,6 +13,12 @@ public class MergesortBenchmarking {
     static int d; // Streams to be open at once in merge sort after initial pass
     // d should be less than 30 and less than M-1
 
+    /**
+     * Main function for executing merge sort
+     * @param args Takes N, M, d as parameter
+     * @throws Exception
+     */
+
     public static void main(String[] args) throws Exception {
 
         if(args.length < 3) {
@@ -44,7 +50,6 @@ public class MergesortBenchmarking {
         InStream in = new InStream();
         ChannelObjects channelObject;
             try {
-//                channelObject = in.channelOpen(IOBenchmarking.createFilename("file",sortedFile),N);
                 channelObject = in.channelOpen(IOBenchmarking.createFilename("file",sortedFile), N);
             } catch (FileNotFoundException e) {
                 System.out.println("File not found!");
@@ -63,17 +68,16 @@ public class MergesortBenchmarking {
 //            }
 
             in.close(channelObject);
-//            deleteTemporaryFiles(sortedFile);
-
-
-
     }
 
-    public static void deleteTemporaryFiles(int limit) throws IOException {
-        for(int i = 0; i < limit; i++) {
-            Files.deleteIfExists(Paths.get(IOBenchmarking.createFilename("file",i)));
-        }
-    }
+    /**
+     * This function creates the initial file with random integers
+     * @param filename Name of initial file
+     * @param N Size of the file
+     * @param B Buffer size while creating the initial file
+     * @throws IOException
+     */
+
 
     public static void createInitialFile(String filename, int N, int B) throws IOException {
         OutStream out = new OutStream();

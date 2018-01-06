@@ -3,6 +3,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
+/**
+ * This class contains the implementation of External Memory Multiway Merge Sort
+ */
+
 public class MultiwayMergeSort {
 
     private int M; // Number of integers that fit in memory
@@ -23,7 +27,12 @@ public class MultiwayMergeSort {
         this.N = N;
     }
 
-
+    /**
+     * Implements the whole merge sort by sorting the files and merging them into bigger files until only one file remains
+     * @param initialFilePath file path of the unsorted file
+     * @return Returns the file number of sorted file
+     * @throws IOException
+     */
     public int mergeSort(String initialFilePath) throws IOException {
         /* First Phase: Splitting the file into N/M sorted files */
         System.out.println("Starting Phase 1...");
@@ -147,6 +156,11 @@ public class MultiwayMergeSort {
         return fileNumber-1;
     }
 
+    /**
+     *Splits the initial file into M smaller files
+     * @param initialFilePath path of unsorted file
+     * @throws IOException
+     */
     public void splitFiles(String initialFilePath) throws IOException {
         InStream input = new InStream();
         ChannelObjects inputChannelObject = input.channelOpen(initialFilePath,N);

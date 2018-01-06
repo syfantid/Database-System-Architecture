@@ -2,6 +2,9 @@ import java.io.*;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
+/**
+ * This class is responsible for all input operations
+ */
 public class InStream {
 
     /**

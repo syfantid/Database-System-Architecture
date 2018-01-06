@@ -73,7 +73,6 @@ public class MultiwayMergeSort {
              /* Create file to write output */
             OutStream out = new OutStream();
             ChannelObjects channelObject;
-            // TODO: 22/12/2017 Think about multiplication factor
             channelObject = out.channelCreate(IOBenchmarking.createFilename("file",fileNumber), totalOutputFileSize/3);
             int outputFileNumber = fileNumber;
             fileNumbers.add(outputFileNumber);

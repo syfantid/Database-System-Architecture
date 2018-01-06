@@ -5,6 +5,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Random;
 
+/**
+ * This class is responsible for benchmarking various I/O approaches
+ */
 public class IOBenchmarking {
     /* Number of open streams */
     private static int k;

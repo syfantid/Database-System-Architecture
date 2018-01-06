@@ -1,15 +1,18 @@
 import java.io.*;
 import java.nio.MappedByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Random;
 
 public class IOBenchmarking {
     /* Number of open streams */
-    private static int k = 15;
+    private static int k;
     /* Input and Output Streams; need to be initialized in main function */
-    static OutStream[] out = new OutStream[k];
-    static InStream[] in = new InStream[k];
+    static OutStream[] out;
+    static InStream[] in;
     /* Variables for timing */
-    static int elementSizeInBytes = 4;
+    static final int elementSizeInBytes = 4;
     static long startReadTime;
     static long startWriteTime;
     static long endReadTime;
@@ -20,12 +23,30 @@ public class IOBenchmarking {
     /* Variable for random integer generation */
     static Random rand = new Random();
     /* Number of records per file */
-    static int N = 200000000;
+    static int N;
     /* Size of a buffer block in records */
-    static int B = 20000000;
+    static int B;
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
-        //System.setOut(new PrintStream(new BufferedOutputStream(new FileOutputStream("output.txt", true)), true));
+
+        if(args.length < 3) {
+            System.err.println("Please provide all the necessary arguments.\n" +
+                    "Argument order: N B k");
+            return;
+        }
+
+        N = Integer.valueOf(args[0]);
+        B = Integer.valueOf(args[1]);
+        k = Integer.valueOf(args[2]);
+        if(k > 30) {
+            System.err.println("The number of simultaneously opened streams, k, cannot exceed 30.");
+            return;
+        }
+
+        /* Input and Output Streams; need to be initialized in main function */
+        out = new OutStream[k];
+        in = new InStream[k];
+
         /* Initializing the input streams */
         for(int i=0; i<k; i++) {
             out[i] = new OutStream();
@@ -33,28 +54,33 @@ public class IOBenchmarking {
         }
 
         /* METHOD 1: SYSTEM FUNCTIONS */
-        /*System.out.println("METHOD 1:");
-        systemStreams();*/
+        System.out.println("System Calls:");
+        systemStreams();
 
         /* METHOD 2: BUFFERED READER AND WRITER */
-        /*System.out.println("METHOD 2:");
-        bufferedStreams();*/
+        System.out.println("Default Buffered Streams:");
+        bufferedStreams();
 
-        /* METHOD 3a: BUFFER READ PER BLOCK (objectStream) */
-        System.out.println("METHOD 3:a");
-        blockStreams();
+        /* METHOD 3a: BUFFER READ PER OBJECT (objectStream) */
+        System.out.println("Object Streams:");
+        objectStreams();
 
         /* METHOD 3b: BUFFER READ PER BLOCK (Buffered Parameterized Stream) */
-        /*System.out.println("METHOD 3:b");
-        parameterizedBufferedStreams();*/
+        System.out.println("Parametrized Buffered Streams:");
+        parameterizedBufferedStreams();
 
         /* METHOD 4: MAPPING */
-       System.out.println("METHOD 4:");
+       System.out.println("Memory Mapping:");
        mapStreams();
     }
 
     public static String createFilename(String filename, int i) {
         return filename + i + ".data";
+    }
+
+    public static void deleteFiles(String prefix, int number) throws IOException {
+        Path fileToDeletePath = Paths.get(createFilename(prefix,number));
+        Files.delete(fileToDeletePath);
     }
 
     private static void systemStreams() throws IOException {
@@ -102,6 +128,7 @@ public class IOBenchmarking {
         /* Close all files */
         for(int i = 0; i < k; i++) {
             in[i].close(ds[i]);
+            deleteFiles("testSystem",i);
         }
 
         endReadTime = System.currentTimeMillis();
@@ -120,7 +147,7 @@ public class IOBenchmarking {
         for(int i = 0; i < k; i++) {
             ods[i] = out[i].bufferedCreate(createFilename("testBuffered",i));
         }
-        /* For each number (i), write the number to j files */
+        /* For each number (i), write the number to j files through buffer */
         for(int i = 0; i < N; i++) {
             for(int j = 0; j < k; j++) {
                 out[j].write(ods[j], rand.nextInt());
@@ -158,6 +185,7 @@ public class IOBenchmarking {
         /* Close all files */
         for(int i = 0; i < k; i++) {
             in[i].close(ds[i]);
+            deleteFiles("testBuffered",i);
         }
 
         endReadTime = System.currentTimeMillis();
@@ -167,21 +195,21 @@ public class IOBenchmarking {
         System.out.println("Total Time: " + totalTime);
     }
 
-    private static void blockStreams() throws IOException, ClassNotFoundException {
+    private static void objectStreams() throws IOException, ClassNotFoundException {
         ObjectOutputStream[] oos = new ObjectOutputStream[k];
         ObjectInputStream[] ois = new ObjectInputStream[k];
 
         /* Write data to files */
         startWriteTime = System.currentTimeMillis();
         for(int i = 0; i < k; i++) {
-            oos[i] = out[i].blockCreate(createFilename("testBlock",i));
+            oos[i] = out[i].objectCreate(createFilename("testObject",i));
         }
 
         int[] buffer = new int[B];
         int bufferRefills = (int)Math.ceil(N/B); //size of each buffer will be size of file / number of elements in each buffer
         int counter = 0; //to check if N integers are already written in the file
 
-        /*refill the buffer array bufferRefills times using B elements and then write it to k files*/
+        /* Refill the buffer array bufferRefills times using B elements and then write it to k files */
         for(int i = 0; i < bufferRefills; i++) {
             innerloop:
             for(int j = 0; j < B; j++) {
@@ -208,7 +236,7 @@ public class IOBenchmarking {
         startReadTime = System.currentTimeMillis();
         for(int i = 0; i < k; i++) {
             try {
-                ois[i] = in[i].blockOpen(createFilename("testBlock",i));
+                ois[i] = in[i].objectOpen(createFilename("testObject",i));
             } catch (FileNotFoundException e) {
                 System.out.println("File not found!");
                 return;
@@ -228,6 +256,7 @@ public class IOBenchmarking {
                    */
                 } catch (EOFException e) {
                     in[i].close(ois[i]);
+                    deleteFiles("testObject",i);
                     break;
                 }
             }
@@ -248,7 +277,7 @@ public class IOBenchmarking {
         for(int i = 0; i < k; i++) {
             ods[i] = out[i].bufferedCreate(createFilename("testBuffered",i), B);
         }
-        /* For each number (i), write the number to j files */
+        /* For each number (i), write the number to j files through buffer */
         for(int i = 0; i < N; i++) {
             for(int j = 0; j < k; j++) {
                 out[j].write(ods[j], rand.nextInt());
@@ -286,6 +315,7 @@ public class IOBenchmarking {
         /* Close all files */
         for(int i = 0; i < k; i++) {
             in[i].close(ds[i]);
+            deleteFiles("testBuffered",i);
         }
 
         endReadTime = System.currentTimeMillis();
@@ -348,9 +378,12 @@ public class IOBenchmarking {
             }
         }
 
+
         for(int i = 0; i < k; i++) {
+            int read = 0;
             while (!in[i].eof(map[i])) {
-                int[] buf = in[i].read(map[i], B);
+                int[] buf = in[i].read(map[i], Math.min(N-read, B));
+                read += B;
                 /* Uncomment this block if you want the result to be printed on screen */
 //                for (int j = 0; j < buf.length; j++) {
 //                    System.out.println(buf[j]);
@@ -361,6 +394,11 @@ public class IOBenchmarking {
 
         for(int i = 0; i < k; i++) {
             in[i].close(channelObjects[i]);
+            try {
+                deleteFiles("testMapping",i);
+            } catch(java.nio.file.FileSystemException e) {
+
+            }
         }
 
         endReadTime = System.currentTimeMillis();

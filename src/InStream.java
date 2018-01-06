@@ -17,7 +17,7 @@ public class InStream {
         DataInputStream ds = new DataInputStream( bis );
         return ds;
     }
- /*Open file with a specific buffer size*/
+    /*Open file with a specific buffer size*/
     public DataInputStream bufferedOpen(String filename, int B) throws FileNotFoundException {
         InputStream is = new FileInputStream( new File(filename ) );
         /*Giving customized size of B as parameter in bytes*/
@@ -26,7 +26,7 @@ public class InStream {
         return ds;
     }
 
-    public ObjectInputStream blockOpen(String filename) throws IOException {
+    public ObjectInputStream objectOpen(String filename) throws IOException {
         ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename));
         return in;
     }
@@ -87,5 +87,6 @@ public class InStream {
     public void close(ChannelObjects channelObjects) throws IOException {
         channelObjects.getFileChannel().close();
         channelObjects.getRandomAccessFile().close();
+        //System.gc();
     }
 }

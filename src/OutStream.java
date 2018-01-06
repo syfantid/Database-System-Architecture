@@ -23,7 +23,7 @@ class OutStream {
     }
 
 
-    ObjectOutputStream blockCreate(String filename) throws IOException {
+    ObjectOutputStream objectCreate(String filename) throws IOException {
         return new ObjectOutputStream(new FileOutputStream(filename));
     }
 
@@ -44,7 +44,7 @@ class OutStream {
 
     void write(DataOutputStream ds, int element) throws IOException {
         ds.writeInt(element);
-}
+    }
 
     void write(ObjectOutputStream oos, int[] buffer) throws IOException {
         oos.writeObject(buffer);
@@ -63,5 +63,6 @@ class OutStream {
     void close(ChannelObjects channelObjects) throws IOException {
         channelObjects.getFileChannel().close();
         channelObjects.getRandomAccessFile().close();
+        //System.gc();
     }
 }
